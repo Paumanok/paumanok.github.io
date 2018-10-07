@@ -1,8 +1,8 @@
 ## Welcome to the Home Page
 
-#index
+# index
 
-##writeups
+## writeups
 
-##projects
+## projects
 
