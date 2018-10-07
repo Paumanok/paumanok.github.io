@@ -3,6 +3,7 @@
 # index
 
 ## writeups
-
+[writeups](paumanok.github.io/writeups)
 ## projects
+[writeups](paumanok.github.io/writeups)
 
