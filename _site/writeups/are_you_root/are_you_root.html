@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+<!-- Begin Jekyll SEO tag v2.5.0 -->
+<title>Are you Root? | Thats Some Spicy Technology</title>
+<meta name="generator" content="Jekyll v3.7.4" />
+<meta property="og:title" content="Are you Root?" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="My personal site for showcasing my writeups and personal projects" />
+<meta property="og:description" content="My personal site for showcasing my writeups and personal projects" />
+<link rel="canonical" href="http://localhost:4000/writeups/are_you_root/are_you_root.html" />
+<meta property="og:url" content="http://localhost:4000/writeups/are_you_root/are_you_root.html" />
+<meta property="og:site_name" content="Thats Some Spicy Technology" />
+<script type="application/ld+json">
+{"description":"My personal site for showcasing my writeups and personal projects","headline":"Are you Root?","@type":"WebPage","url":"http://localhost:4000/writeups/are_you_root/are_you_root.html","@context":"http://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/assets/css/style.css?v=98b1bdd551733cc44db4c651092db84a18ac8c34">
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+    <script src="/assets/js/respond.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="/assets/css/ie.css">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+      <div id="header">
+        <nav>
+          <li class="fork"><a href="http://github.com/paumanok/paumanok.github.io">View On GitHub</a></li>
+          
+        </nav>
+      </div><!-- end header -->
+
+    <div class="wrapper">
+
+      <section>
+        <div id="title">
+          <h1>Thats Some Spicy Technology</h1>
+          <p>My personal site for showcasing my writeups and personal projects</p>
+          <hr>
+          <span class="credits left">Project maintained by <a href="http://github.com/paumanok">paumanok</a></span>
+          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
+        </div>
+
+        <h1 id="are-you-root">Are you Root?</h1>
+
+<p>The last time I participated in a CTF was openCTF at Defcon back in August. I decided it had been a little too long. I asked a coworker if there were any good CTFs going on and he pointed me towards PicoCTF hosted by Carnegie Mellon University. I hopped on the team and went to work. The first problem I went after was titled “Are you root?”.</p>
+
+<p>For this problem you’re presented with an address and port, as well as a C source file for the service running on the server. My initial approach was to connect to the server and observe the interface that was presented. 
+<img src="/writeups/are_you_root/images/image1_cropped.png" alt="image1" /></p>
+
+<p>Upon first look, this reminded me of previous problems I had seen that took advantage of a Use-After-Free vulnerability.</p>
+
+<p>Looking through the C source, you will notice an input buffer of size 512. Additionally, user input is taken via a secure fgets. Which rules out a simple buffer overflow, reinforcing the Use-After-Free.</p>
+
+<p><img src="/writeups/are_you_root/images/code1.png" alt="code1" /></p>
+
+<p>One aspect of the code that brings attention is how the program creates and frees the user struct. On creation, the user struct is malloc’d with the size of the user struct. But on deletion, only the name pointer in the user struct is freed. Without the rest of the struct being nulled out. The next time a user is created, the space is malloc’d again, but the previously freed memory was not cleared and thus when a new, shorter name is created, ascii in memory is assigned to the auth level.</p>
+
+<p><img src="/writeups/are_you_root/images/image2_cropped.png" alt="image2_cropped" /></p>
+
+<p>We now see how we’re able to overwrite auth with a user controlled value. The primary error in the code can be seen in the next three images. A simple struct is defined, space for the struct is malloc’d, then only the name is freed. This leaves user controllable data in the heap, and is left until data fully overwrites it.</p>
+
+<p><em>A simple user struct.</em></p>
+
+<p><img src="/writeups/are_you_root/images/code2-struct.png" alt="code2-struct" /></p>
+
+<p><em>When user is created, space for the struct is malloc’d.</em></p>
+
+<p><img src="/writeups/are_you_root/images/code2-login-malloc.png" alt="code2-login-malloc" /></p>
+
+<p><em>When the user is deleted, only the name pointer is freed.</em></p>
+
+<p><img src="/writeups/are_you_root/images/code2-free.png" alt="code2-free" /></p>
+
+<p>I now just need to find where to write my auth value to specifically.</p>
+
+<p>I compiled auth.c and ran it with GDB to see where the auth value is stored in order to find the point where I could overwrite it.</p>
+
+<p>First, I logged in, and displayed my original auth level. Next, I stopped the program, found the address to the start of the heap and examined memory for 200 words. This showed me where in the heap the user was being stored and allowed me to hone in on where I was looking.</p>
+
+<p><img src="/writeups/are_you_root/images/gdb1_cropped.png" alt="gdb1_cropped" />
+<img src="/writeups/are_you_root/images/gdb2_cropped.png" alt="gdb2_cropped" /></p>
+
+<p>Next I continued the program and changed the auth level, repeated the heap inspection, then changed the auth level again. This pointed out the offset in memory where the auth value would be stored and where I should put my user controlled input.</p>
+
+<p><img src="/writeups/are_you_root/images/gdb3.png" alt="gdb3" />
+<img src="/writeups/are_you_root/images/gdb4.png" alt="gdb4" /></p>
+
+<p>In the last image, the 6th half byte in the third column of the second row is seen changing, corresponding to the auth value I set. It only sets this one point in memory so I needed to make use of it.</p>
+
+<p>I could now move forward in developing my attack.</p>
+
+<p>In my initial attempt, I tried sending a single byte ‘\x05’ with a prepending 5 ‘A’s. This simply took the ascii value of ‘5’ rather than the actual value 5.
+<img src="/writeups/are_you_root/images/image3_cropped.png" alt="image3_cropped" /></p>
+
+<p>Since no ascii besides an olde timey terminal commands would write 5 to that position, I decided to script it.</p>
+
+<p>I popped open python with pwntools for a nice socket wrapper and scripted up the commands I needed to enable the use-after-free attack. Only this time, the raw \x05’ byte encoded directly into the username string, reset the user, then recreate a new user with the pre-set authentication value.</p>
+
+<p><img src="/writeups/are_you_root/images/image-2.png" alt="image2" /></p>
+
+
+
+      </section>
+
+    </div>
+
+    
+  </body>
+</html>
