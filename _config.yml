@@ -1,3 +1,5 @@
-theme: jekyll-theme-midnight
+#theme: jekyll-theme-midnight
+theme: minima
+#remote_theme: "jekyll/minima@1e8a445"
 title: Thats Some Spicy Technology
 description: My personal site for showcasing my writeups and personal projects
