@@ -5,3 +5,10 @@ minima:
 #remote_theme: "jekyll/minima@1e8a445"
 title: Blog. 
 #description: My personal site for showcasing my writeups and personal projects
+plugins: 
+  - jekyll-titles-from-headings
+
+titles_from_headings:
+  enabled:     true
+  strip_title: true
+  collections: true 
