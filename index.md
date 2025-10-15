@@ -1,6 +1,8 @@
-[Rescuing a dead pro-micro](writeups/promicro_rescue]
+[MW140bt revival](projects/mw140bt/mw140bt)
 
-[writeups](writeups/writeups_index)
+[Rescuing a dead pro-micro](writeups/promicro_rescue/promicro_rescue)
+
+
 
 [projects](projects)
 
